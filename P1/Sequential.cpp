@@ -1,117 +1,106 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <cstdio>
-#include <string>
-#include <algorithm>
-#include <unordered_map>
+#include "Record.hpp"
 
-struct Registro{
-  char codigo[5];
-  char nombre[20];
-  char carrera[15];
-  int ciclo;
-};
+#define M 5
 
-struct Page{
-  Registro registro[10];
-};
-
-class Handler{
-  std::vector<Registro> registros;
-  std::unordered_map<std::string, int> indexR;
-  std::string dataFile;
-  std::string indexFile;
-  std::string inputFile;
+class Sequential{
+protected:
+    string name;
+    string datafile;
+    fstream DATAFILE;
+    string auxfile;
+    fstream AUXFILE;
+    bool empty;
 
 public:
-
-  Handler(std::string dataFile, std::string indexFile, std::string inputFile) {
-    this->dataFile = dataFile;
-    this->indexFile = indexFile;
-    this->inputFile = inputFile;
-    Registro reg;
-    std::fstream inputStream;
-    inputStream.open(dataFile, std::ios::in | std::ios::binary);
-
-    if(inputStream.is_open()){
-      while(inputStream.read((char*)& reg, sizeof(Registro))) {
-        registros.push_back(reg);
-      }
-		}else
-      std::cout << "Can't open the file";
-  }
-
-  void writeRecord(Page obj) {
-    std::ofstream outFile;
-    outFile.open(dataFile, std::ios::binary | std::ios::app);        
-    outFile.write((char *) &obj, sizeof(obj));
-    outFile.close();
-  }
-
-  void writeIndex() {
-    std::ofstream indexFile;
-    indexFile.open(dataFile, std::ios::binary | std::ios::app);        
-    for(auto &x: indexR){
-      indexFile.write((char *) &x, sizeof(x));
-    }
-    indexFile.close();
-  }
-	
-	
-	bool sort_reg(Registro r1, Registro r2){
-    std::string s1 = {r1.codigo[2], r1.codigo[3], r1.codigo[4]};
-    std::string s2 = {r2.codigo[2], r2.codigo[3], r2.codigo[4]};
-
-    if(r1.codigo[1] < r2.codigo[1])
-      return true;
-    else if(r1.codigo[1] > r2.codigo[1])
-      return false;
-    else{
-      return stoi(s1) < stoi(s2);
-    }
-  }
-
-  void readIndex(){
-    //todo
-  }
-
-  void readData(std::string file) {
-		Registro reg;
-		std::fstream infile;
-		infile.open(file, std::ios::in | std::ios::binary);
-		if(infile.is_open()){
-      int c = 0;
-      while(infile.read((char*)& reg, sizeof(Registro))) {
-				registros.push_back(reg);
-        if(c % 10 == 0){
-          std::string temp = reg.codigo;
-          indexR[temp] = c;
+    vector<Record> search(string key){
+        if (key.size() > 20)
+            key = key.substr(0, 20);
+        int pos = lower_bound(key);
+        fstream file (this->name,ios::in | ios::binary);
+        vector<Record> records;
+        Record r;
+        int num_records_file = numRecords(datafile,DATAFILE);
+        while (pos<num_records_file){
+            if(r.nombre == key)
+                records.push_back(r);
+            else
+                break;
+            ++pos;
         }
-        c++;
-      }
-		}else
-      std::cout << "Can't open the file";
-    
-    std::sort(registros.begin(), registros.end(), sort_reg);
-    infile.close();
-  }
-  
-  void insertAll(){
-    std::ofstream salida;
-    salida.open(dataFile, std::ios::app | std::ios::binary);
-    for(auto &x: registros){
-      salida.write((char *)&x, sizeof(Registro));
+        return records;
     }
-    salida.close();
-  }
+    
+    void insertAll(vector<Record> &records);
+    
+    bool compareByKey(Record &r1, Record &r2){
+        return (strcmp(r1.nombre,r2.nombre));
+    }
 
+    void isFull(){
+        int recordAmount = numRecords(this->auxfile,AUXFILE);
+        if (recordAmount == M){
+            //reBuild file
+            return;
+        }
+    }
+    
+    void add(Record record){
+        if (this->empty){
+            fstream fData(this->name, ios::binary | ios::out);
+            initialize_first_values(fData,0,'d');
+            this->empty = false;
+            fData.close();
+            return;
+        }
+        isFull();
+
+        string k = record.nombre;
+        int first_pos;
+        char first_ref;
+        
+        int pos = upper_bound(k) - 1;
+        int num_records_datafile = numRecords(this->datafile,DATAFILE);
+        int num_records_auxfile = numRecords(this->auxfile,AUXFILE);
+
+        fstream fileAux(this->auxfile + ".dat",ios::binary | ios::out | ios::app);
+        fstream fileData(this->datafile + ".dat",ios::binary | ios::in | ios::out);
+        fileData.seekg(0,ios::beg);
+        fileData.read((char*)&first_pos,sizeof(int));
+        fileData.read((char*)&first_ref, sizeof(char));
+
+        if (pos == -1){
+            record.nextDel = first_pos;
+            record.reference = first_ref;
+            initialize_first_values(fileData,num_records_auxfile,'a');
+        }
+        else{
+            Record r1;
+            record.nextDel = r1.nextDel;
+            record.reference = r1.reference;
+            r1.nextDel = r1.reference;
+            r1.reference = 'a';
+        }
+        fileAux.close();
+    }
+    
+private:
+    
+    int numRecords(string fileName,fstream& file){
+
+    }
+
+    void initialize_first_values(fstream& file, int size, char c){
+        file.open(this->name + ".dat", ios::app);
+        file.seekg(size * sizeof(Record),ios::beg);
+        file << c;
+    }
+  
+
+    int upper_bound (string key){
+
+    }
+
+    int lower_bound (string key){
+        
+    }
 };
-
-int main(){
-  std::string data = "data.txt";
-  std::string ind = "index.txt";
-  std::string aux = "aux.txt";
-  Handler handler(data, ind, aux);
-  return 0;
-}
