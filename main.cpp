@@ -1,7 +1,5 @@
-#include <iostream>
-#include <P1/Register.cpp>
+#include "P1/Sequential.cpp"
 
 int main(){
-    std::cout << "Hello" << std::endl;
     return 0;
 }
