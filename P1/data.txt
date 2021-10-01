@@ -1,7 +1,0 @@
-P-131Jose                CS              1    
-P-202Andrea              CS              5     
-P-231Jorge               CS              5     
-P-250Carlos              CS              7     
-P-312Maria               CS              3     
-P-362Cynthia             CS              3     
-P-982Saulo               CS              9     
